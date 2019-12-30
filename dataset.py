@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from skimage.io import imread, imsave
 import numpy as np
 import random
+from Data_Augmentation import cropping, padding, resizing, normalizing
 
 class Brain_Segmantation_Dataset(Dataset):
     in_channels = 3
@@ -51,3 +52,64 @@ class Brain_Segmantation_Dataset(Dataset):
         # =======여기까지가 기본적인 validation dataset과 train dataset으로 split하고 전처리해주는 구문===========#
         # ========================================================================================= #
 
+        print("preprocessing {} volumes.......".format(subset))
+        self.images_dict = [(images_dict[k], masks_dict[k]) for k in self.patients]
+
+        print("cropping {} volumes.......".format(subset))
+        self.images_dict = [cropping(i) for i in self.images_dict]
+
+        print("padding {} volumes.......".format(subset))
+        self.images_dict = [padding(i) for i in self.images_dict]
+
+        print("resizing {} volumes.......".format(subset))
+        self.images_dict = [resizing(i, size=image_size) for i in self.images_dict]
+
+        print("normalizing {} volumes.......".format(subset))
+        self.images_dict = [(normalizing(i), m) for i, m in self.images_dict]
+
+        self.slice_weights = [m.sum(axis=-1).sum(axis=-1) for v, m in self.images_dict]
+        self.slice_weights = [(s + (s.sum() * 0.1 / len(s))) / (s.sum() * 1.1) for s in self.slice_weights]
+
+        self.images_dict = [(v, m[..., np.newaxis]) for (v, m) in self.images_dict]
+
+        print("done creating {} dataset".format(subset))
+        num_slices = [v.shape[0] for v, m in self.images_dict]
+        self.patient_slice_index = list(
+            zip(
+                sum([[i] * num_slices[i] for i in range(len(num_slices))], []),
+                sum([list(range(x)) for x in num_slices], []),
+            )
+        )
+        self.random_sampling = random_sampling
+
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.patient_slice_index)
+
+    def  __getitem__(self, idx):
+        patient = self.patient_slice_index[idx][0]
+        slice_num = self.patient_slice_index[idx][1]
+
+        if self.random_sampling:
+            patient = np.random.randint(len(self.images_dict))
+            slice_num = np.random.choice(
+                range(self.images_dict[patient][0].shape[0]), p=self.slice_weights[patient]
+            )
+
+        image_value, mask_value = self.images_dict[patient]
+        image = image_value[slice_num]
+        mask = mask_value[slice_num]
+
+        if self.transform is not None:
+            image, mask = self.transform((image, mask))
+
+        # fix dimensions (C, H, W)
+        image = image.transpose(2, 0, 1)
+        mask = mask.transpose(2, 0, 1)
+
+        # numpy --> tensor
+        image_tensor = torch.from_numpy(image.astype(np.float32))
+        mask_tensor = torch.from_numpy(mask.astype(np.float32))
+
+        return image_tensor, mask_tensor
