@@ -41,7 +41,7 @@ def padding(x):
     # (21, y_axis, x_axis, 3)이다. y_axis가 크다면, x_axis와 크기를 동일하게 해주기 위해 padding을 씌어주는 것.
     if y_axis == x_axis: # 가로, 세로 크기가 같을땐 그냥 return,
         return image, mask
-    diff = (max(y_axis, x_axis) - (y_axis, x_axis)) / 2.0
+    diff = (max(y_axis, x_axis) - min(y_axis, x_axis)) / 2.0
 
     if y_axis > x_axis:
         padding = ((0, 0), (0, 0), (int(np.floor(diff)), int(np.ceil(diff))))

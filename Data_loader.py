@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
+from torchvision.transforms import Compose
 
 from dataset import Brain_Segmentation_Dataset
 from Data_Augmentation import Scale, Rotate, HorizontalFlip
@@ -15,18 +15,18 @@ def transforms(scale=None, angle=None, flip_prob=None):
     if flip_prob is not None:
         transform_list.append(HorizontalFlip(flip_prob))
 
-    return transforms.Compose(transform_list)
+    return Compose(transform_list)
 
 
 def datasets(images, image_size, aug_scale, aug_angle):
     train = Brain_Segmentation_Dataset(
-        images_dir=images,
+        image_dir=images,
         subset="train",
         image_size=image_size,
         transform=transforms(scale=aug_scale, angle=aug_angle, flip_prob=0.5),
     )
     valid = Brain_Segmentation_Dataset(
-        images_dir=images,
+        image_dir=images,
         subset="validation",
         image_size=image_size,
         random_sampling=False,
