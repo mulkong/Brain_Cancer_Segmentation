@@ -81,3 +81,60 @@ def normalizing(image):
     image = (image - mean) / std
 
     return image
+
+class Scale(object):
+    def __init__(self, scale):
+        self.scale = scale
+
+    def __call__(self, images_dict):
+        image, mask = images_dict
+        image_size = image.shape[0]
+
+        scale = np.random.uniform(low = 1.0 - self.scale, high = 1.0 + self.scale)
+
+        image = rescale(image, (scale, scale), multichannel=True, preserve_range=True, mode='constant', anti_aliasing=False)
+        mask = rescale(mask, (scale, scale), order=0, multichannel=True, preserve_range=True, mode='constant', anti_aliasing=False)
+
+        if scale < 1.0:
+            diff = (image_size - image.shape[0]) / 2.0
+            padding = ((int(np.floor(diff)), int(np.ceil(diff))), ) * 2 + ((0, 0), )
+            image = np.pad(image, padding, mode='constant', constant_values=0)
+            mask = np.pad(mask, padding, mode="constant", constant_values=0)
+        else:
+            x_min = (image.shape[0] - image_size) // 2
+            x_max = x_min + image_size
+            image = image[x_min:x_max, x_min:x_max, ...]
+            mask = mask[x_min:x_max, x_min:x_max, ...]
+
+        return image, mask
+
+class Rotate(object):
+
+    def __init__(self, angle):
+        self.angle = angle
+
+    def __call__(self, images_dict):
+        image, mask = images_dict
+
+        angle = np.random.uniform(low=-self.angle, high=self.angle)
+        image = rotate(image, angle, resize=False, preserve_range=True, mode="constant")
+        mask = rotate(
+            mask, angle, resize=False, order=0, preserve_range=True, mode="constant"
+        )
+        return image, mask
+
+class HorizontalFlip(object):
+
+    def __init__(self, flip_prob):
+        self.flip_prob = flip_prob
+
+    def __call__(self, images_dict):
+        image, mask = images_dict
+
+        if np.random.rand() > self.flip_prob:
+            return image, mask
+
+        image = np.fliplr(image).copy()
+        mask = np.fliplr(mask).copy()
+
+        return image, mask
