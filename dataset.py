@@ -6,7 +6,7 @@ import numpy as np
 import random
 from Data_Augmentation import cropping, padding, resizing, normalizing
 
-class Brain_Segmantation_Dataset(Dataset):
+class Brain_Segmentation_Dataset(Dataset):
     in_channels = 3
     out_channels = 1
 
