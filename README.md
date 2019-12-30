@@ -1,5 +1,6 @@
 # Brain_Cancer_Segmentation
-
+#### FrameWork
+Pytorch
 
 #### 데이터셋 구조(TCGA Dataset)
 
